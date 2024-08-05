@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Take a Quiz</title>
+</head>
+<body>
+    <h1>Take a Quiz</h1>
+    <div id="quiz-list"></div>
+    <div id="quiz-container" style="display:none;">
+        <h2 id="quiz-title"></h2>
+        <form id="quiz-form">
+            <div id="questions-container"></div>
+            <button type="submit">Submit Quiz</button>
+        </form>
+    </div>
+
+    <script>
+        function loadQuizzes() {
+            fetch('/api/quiz/all')
+                .then(response => response.json())
+                .then(data => {
+                    const quizList = document.getElementById('quiz-list');
+                    data.forEach(quiz => {
+                        const quizItem = document.createElement('div');
+                        quizItem.textContent = quiz.title;
+                        quizItem.style.cursor = 'pointer';
+                        quizItem.onclick = () => loadQuiz(quiz.id);
+                        quizList.appendChild(quizItem);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function loadQuiz(id) {
+            fetch(`/api/quiz/${id}`)
+                .then(response => response.json())
+                .then(quiz => {
+                    document.getElementById('quiz-list').style.display = 'none';
+                    document.getElementById('quiz-container').style.display = 'block';
+                    document.getElementById('quiz-title').textContent = quiz.title;
+                    const container = document.getElementById('questions-container');
+                    container.innerHTML = '';
+                    quiz.questions.forEach((question, index) => {
+                        const questionHtml = `
+                            <div>
+                                <p>${question.question}</p>
+                                ${question.options.map((option, i) => `
+                                    <label>
+                                        <input type="radio" name="question${index}" value="${i}" required>
+                                        ${option}
+                                    </label><br>
+                                `).join('')}
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', questionHtml);
+                    });
+
+                    document.getElementById('quiz-form').onsubmit = function(event) {
+                        event.preventDefault();
+                        const answers = Array.from(document.querySelectorAll('#questions-container > div')).map((div, index) => {
+                            return parseInt(div.querySelector(`input[name="question${index}"]:checked`).value);
+                        });
+
+                        fetch(`/api/quiz/submit/${id}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ answers })
+                        })
+                        .then(response => response.json())
+                        .then(data => alert(`You scored ${data.score} out of ${data.total}`))
+                        .catch(error => console.error('Error:', error));
+                    };
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        window.onload = loadQuizzes;
+    </script>
+</body>
+</html>

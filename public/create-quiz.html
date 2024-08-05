@@ -1,0 +1,61 @@
+-<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create a Quiz</title>
+</head>
+<body>
+    <h1>Create a Quiz</h1>
+    <form id="quiz-form">
+        <input type="text" id="quiz-title" placeholder="Quiz Title" required>
+        <div id="questions-container"></div>
+        <button type="button" onclick="addQuestion()">Add Question</button>
+        <button type="submit">Create Quiz</button>
+    </form>
+
+    <script>
+        let questionsCount = 0;
+
+        function addQuestion() {
+            questionsCount++;
+            const container = document.getElementById('questions-container');
+            const questionHtml = `
+                <div>
+                    <input type="text" placeholder="Question ${questionsCount}" required>
+                    <input type="text" placeholder="Option 1" required>
+                    <input type="text" placeholder="Option 2" required>
+                    <input type="text" placeholder="Option 3" required>
+                    <input type="text" placeholder="Option 4" required>
+                    <input type="number" placeholder="Correct Answer (1-4)" required>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', questionHtml);
+        }
+
+        document.getElementById('quiz-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const title = document.getElementById('quiz-title').value;
+            const questionsDiv = document.querySelectorAll('#questions-container > div');
+            const questions = Array.from(questionsDiv).map(div => {
+                const inputs = div.querySelectorAll('input');
+                return {
+                    question: inputs[0].value,
+                    options: [inputs[1].value, inputs[2].value, inputs[3].value, inputs[4].value],
+                    correctAnswer: parseInt(inputs[5].value) - 1
+                };
+            });
+
+            fetch('/api/quiz/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, questions })
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
